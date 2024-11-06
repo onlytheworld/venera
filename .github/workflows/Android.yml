@@ -1,7 +1,8 @@
 name: Android
 
 on:
-  workflow_dispatch: {}
+  release:
+    types: [published]
 
 jobs:
   android_build:
