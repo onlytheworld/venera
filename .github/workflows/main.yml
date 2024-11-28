@@ -15,15 +15,17 @@ jobs:
           distribution: "zulu"
           java-version: "17"
       - uses: subosito/flutter-action@v2
-      - name: SetUp ENV
+      - name: Build APK
         env:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_STORE_FILE_BASE64: ${{ secrets.ANDROID_STORE_FILE_BASE64 }}
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
-        run: base64 -d <<< $ANDROID_STORE_FILE_BASE64 > android/app/release-key.jks && echo -e "storePassword=$ANDROID_STORE_PASSWORD\nkeyPassword=$ANDROID_KEY_PASSWORD\nkeyAlias=$ANDROID_KEY_ALIAS\nstoreFile=release-key.jks" >> android/key.properties 
-      - run: flutter pub get
-      - run: flutter build apk --split-per-abi
+        run: |
+          base64 -d <<< $ANDROID_STORE_FILE_BASE64 > android/app/release-key.jks 
+          echo -e "storePassword=$ANDROID_STORE_PASSWORD\nkeyPassword=$ANDROID_KEY_PASSWORD\nkeyAlias=$ANDROID_KEY_ALIAS\nstoreFile=release-key.jks" >> android/key.properties 
+          flutter pub get
+          flutter build apk --split-per-abi
       - uses: actions/upload-artifact@v4
         with:
           name: flutter-apk
