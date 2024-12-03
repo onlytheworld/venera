@@ -163,7 +163,9 @@ class ComicTile extends StatelessWidget {
   Widget buildImage(BuildContext context) {
     ImageProvider image;
     if (comic is LocalComic) {
-      image = FileImage((comic as LocalComic).coverFile);
+      image = LocalComicImageProvider(comic as LocalComic);
+    } else if (comic is History) {
+      image = HistoryImageProvider(comic as History);
     } else if (comic.sourceKey == 'local') {
       var localComic = LocalManager().find(comic.id, ComicType.local);
       if (localComic == null) {
@@ -829,6 +831,7 @@ class ComicList extends StatefulWidget {
     this.trailingSliver,
     this.errorLeading,
     this.menuBuilder,
+    this.controller,
   });
 
   final Future<Res<List<Comic>>> Function(int page)? loadPage;
@@ -842,6 +845,8 @@ class ComicList extends StatefulWidget {
   final Widget? errorLeading;
 
   final List<MenuEntry> Function(Comic)? menuBuilder;
+
+  final ScrollController? controller;
 
   @override
   State<ComicList> createState() => ComicListState();
@@ -1064,6 +1069,7 @@ class ComicListState extends State<ComicList> {
       );
     }
     return SmoothCustomScrollView(
+      controller: widget.controller,
       slivers: [
         if (widget.leadingSliver != null) widget.leadingSliver!,
         if (_maxPage != 1) _buildSliverPageSelector(),

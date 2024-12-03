@@ -223,7 +223,7 @@ class _ComicPageState extends LoadingState<ComicPage, ComicDetails>
             children: [
               SelectableText(comic.title, style: ts.s18),
               if (comic.subTitle != null)
-                SelectableText(comic.subTitle!, style: ts.s14),
+                SelectableText(comic.subTitle!, style: ts.s14).paddingVertical(4),
               Text(
                 (ComicSource.find(comic.sourceKey)?.name) ?? '',
                 style: ts.s12,
@@ -288,8 +288,7 @@ class _ComicPageState extends LoadingState<ComicPage, ComicDetails>
                 onLongPressed: quickFavorite,
                 iconColor: context.useTextColor(Colors.purple),
               ),
-              if (comicSource.commentsLoader != null &&
-                  (comic.comments == null || comic.comments!.isEmpty))
+              if (comicSource.commentsLoader != null)
                 _ActionButton(
                   icon: const Icon(Icons.comment),
                   text: (comic.commentsCount ?? 'Comments'.tl).toString(),
