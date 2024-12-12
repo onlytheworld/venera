@@ -10,7 +10,7 @@ export "widget_utils.dart";
 export "context.dart";
 
 class _App {
-  final version = "1.0.8";
+  final version = "1.1.0";
 
   bool get isAndroid => Platform.isAndroid;
 
@@ -63,22 +63,9 @@ class _App {
     }
   }
 
-  var mainColor = Colors.blue;
-
   Future<void> init() async {
     cachePath = (await getApplicationCacheDirectory()).path;
     dataPath = (await getApplicationSupportDirectory()).path;
-    mainColor = switch (appdata.settings['color']) {
-      'red' => Colors.red,
-      'pink' => Colors.pink,
-      'purple' => Colors.purple,
-      'green' => Colors.green,
-      'orange' => Colors.orange,
-      'blue' => Colors.blue,
-      'yellow' => Colors.yellow,
-      'cyan' => Colors.cyan,
-      _ => Colors.blue,
-    };
   }
 
   Function? _forceRebuildHandler;
