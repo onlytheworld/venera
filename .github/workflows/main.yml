@@ -6,58 +6,58 @@ on:
     types: [published]
 
 jobs:
-  Build_Android:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-          flutter-version-file: pubspec.yaml
-          architecture: x64
-      - name: Decode and install certificate
-        env:
-          STORE_FILE: ${{ secrets.ANDROID_KEYSTORE }}
-          PROPERTY_FILE: ${{ secrets.ANDROID_KEY_PROPERTIES }}
-        run: |
-            echo "$STORE_FILE" | base64 --decode > android/keystore.jks
-            echo "$PROPERTY_FILE" > android/key.properties
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'oracle'
-          java-version: '17'
-      - name: Check rust-toolchain.toml
-        run: rustup show
-      - run: flutter pub get
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: apks
-          path: build/app/outputs/apk/release
-  Build_Windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: install dependencies
-        run: | 
-          choco install yq -y
-          pip install httpx
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-          flutter-version-file: pubspec.yaml
-          architecture: x64
-      - name: build
-        run: |
-          flutter pub get
-          python windows/build.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows_build
-          path: build/windows/Venera-*
+  # Build_Android:
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: "stable"
+  #         flutter-version-file: pubspec.yaml
+  #         architecture: x64
+  #     - name: Decode and install certificate
+  #       env:
+  #         STORE_FILE: ${{ secrets.ANDROID_KEYSTORE }}
+  #         PROPERTY_FILE: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+  #       run: |
+  #           echo "$STORE_FILE" | base64 --decode > android/keystore.jks
+  #           echo "$PROPERTY_FILE" > android/key.properties
+  #     - uses: actions/setup-java@v4
+  #       with:
+  #         distribution: 'oracle'
+  #         java-version: '17'
+  #     - name: Check rust-toolchain.toml
+  #       run: rustup show
+  #     - run: flutter pub get
+  #     - run: flutter build apk --release
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: apks
+  #         path: build/app/outputs/apk/release
+  # Build_Windows:
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: install dependencies
+  #       run: | 
+  #         choco install yq -y
+  #         pip install httpx
+  #     - uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: "stable"
+  #         flutter-version-file: pubspec.yaml
+  #         architecture: x64
+  #     - name: build
+  #       run: |
+  #         flutter pub get
+  #         python windows/build.py
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: windows_build
+  #         path: build/windows/Venera-*
   Release:
     runs-on: ubuntu-22.04
-    needs: [Build_Android, Build_Windows]
+    # needs: [Build_Android, Build_Windows]
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -78,16 +78,35 @@ jobs:
           latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
           echo "LATEST_TAG=$latest_tag" >> $GITHUB_ENV
           echo "Latest tag: $latest_tag"
-      # 拼接一个新的 pre-release tag，比如 v1.0.0 → v1.0.1-pre
-      - name: Compute pre-release tag
+      - name: Compute new pre-release tag
         id: compute_tag
         run: |
-          base=${LATEST_TAG#v}  # 去掉 v 前缀
-          IFS='.' read -r major minor patch <<< "$base"
-          patch=$((patch + 1))
-          new_tag="v${major}.${minor}.${patch}-pre"
-          echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
-          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+          version="${LATEST_TAG#v}"  # 去掉 v 前缀
+
+          # 解析版本号
+          if [[ "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(\.([0-9]+))?(-pre)?$ ]]; then
+            major=${BASH_REMATCH[1]}
+            minor=${BASH_REMATCH[2]}
+            patch=${BASH_REMATCH[3]}
+            pre=${BASH_REMATCH[5]}
+
+            if [[ -z "$pre" ]]; then
+              # 如果是正式版，如 v1.4.5 → v1.4.6.0-pre
+              patch=$((patch + 1))
+              new_tag="v${major}.${minor}.${patch}.0-pre"
+            else
+              # 如果是 pre-release，如 v1.4.6.0-pre → v1.4.6.1-pre
+              pre=$((pre + 1))
+              new_tag="v${major}.${minor}.${patch}.${pre}-pre"
+            fi
+
+            echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
+            echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+            echo "Calculated new tag: $new_tag"
+          else
+            echo "Invalid tag format: $version"
+            exit 1
+          fi
       # 创建新的 prerelease
       - name: Create pre-release (manual trigger only)
         if: github.event_name == 'workflow_dispatch'
