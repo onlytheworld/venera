@@ -59,14 +59,14 @@ jobs:
     runs-on: ubuntu-22.04
     # needs: [Build_Android, Build_Windows]
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: apks
-          path: outputs
-      - uses: actions/download-artifact@v4
-        with:
-          name: windows_build
-          path: outputs
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: apks
+      #     path: outputs
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: windows_build
+      #     path: outputs
       - name: Checkout repo
         uses: actions/checkout@v3
         with:
