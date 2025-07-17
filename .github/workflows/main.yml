@@ -33,7 +33,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: apks
-          path: build/app/outputs/apk/release
+          path: build/app/outputs/apk/release/*-arm64-v8a.apk
   Build_Windows:
     runs-on: windows-latest
     steps:
@@ -57,7 +57,7 @@ jobs:
           path: build/windows/Venera-*
   Release:
     runs-on: ubuntu-22.04
-    # needs: [Build_Android, Build_Windows]
+    needs: [Build_Android, Build_Windows]
     steps:
       - uses: actions/download-artifact@v4
         with:
