@@ -59,6 +59,10 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [Build_Android, Build_Windows]
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 关键！确保能获取 tag
       - uses: actions/download-artifact@v4
         with:
           name: apks
@@ -67,10 +71,6 @@ jobs:
         with:
           name: windows_build
           path: outputs
-      - name: Checkout repo
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # 关键！确保能获取 tag
       # 获取最近的 tag
       - name: Get latest tag
         id: get_tag
