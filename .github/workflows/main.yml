@@ -107,6 +107,14 @@ jobs:
             echo "Invalid tag format: $version"
             exit 1
           fi
+      - name: Debug current working directory
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Files under current directory:"
+          ls -al
+          echo "Files under outputs/:"
+          ls -al outputs || echo "outputs/ not found"
       # 创建新的 prerelease
       - name: Create pre-release (manual trigger only)
         if: github.event_name == 'workflow_dispatch'
