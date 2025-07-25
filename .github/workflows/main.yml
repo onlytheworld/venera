@@ -1,9 +1,10 @@
 name: Build ALL
 run-name: Build ALL
 on:
-  workflow_dispatch: {}
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   Build_Android:
@@ -59,18 +60,16 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [Build_Android, Build_Windows]
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # 关键！确保能获取 tag
       - uses: actions/download-artifact@v4
         with:
           name: apks
           path: outputs
+  
       - uses: actions/download-artifact@v4
         with:
           name: windows_build
           path: outputs
+  
       # 获取最近的 tag
       - name: Get latest tag
         id: get_tag
@@ -78,28 +77,41 @@ jobs:
           latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
           echo "LATEST_TAG=$latest_tag" >> $GITHUB_ENV
           echo "Latest tag: $latest_tag"
-      - name: Compute new pre-release tag
+  
+      # 根据事件类型计算新 tag
+      - name: Compute new tag
         id: compute_tag
         run: |
-          version="${LATEST_TAG#v}"  # 去掉 v 前缀
-
-          # 解析版本号
+          version="${LATEST_TAG#v}"
           if [[ "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(\.([0-9]+))?(-pre)?$ ]]; then
             major=${BASH_REMATCH[1]}
             minor=${BASH_REMATCH[2]}
             patch=${BASH_REMATCH[3]}
             pre=${BASH_REMATCH[5]}
-
-            if [[ -z "$pre" ]]; then
-              # 如果是正式版，如 v1.4.5 → v1.4.6.0-pre
-              patch=$((patch + 1))
-              new_tag="v${major}.${minor}.${patch}.0-pre"
-            else
-              # 如果是 pre-release，如 v1.4.6.0-pre → v1.4.6.1-pre
-              pre=$((pre + 1))
-              new_tag="v${major}.${minor}.${patch}.${pre}-pre"
+  
+            if [[ "${{ github.event_name }}" == "push" ]]; then
+              # push: pre-release
+              if [[ -z "$pre" ]]; then
+                patch=$((patch + 1))
+                new_tag="v${major}.${minor}.${patch}.0-pre"
+              else
+                pre=$((pre + 1))
+                new_tag="v${major}.${minor}.${patch}.${pre}-pre"
+              fi
+              echo "PRERELEASE=true" >> $GITHUB_ENV
+            elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+              # workflow_dispatch: 正式 release
+              if [[ -n "$pre" ]]; then
+                # 如果当前是 pre-release，则去掉 pre 部分
+                new_tag="v${major}.${minor}.${patch}"
+              else
+                # 否则正常递增 patch
+                patch=$((patch + 1))
+                new_tag="v${major}.${minor}.${patch}"
+              fi
+              echo "PRERELEASE=false" >> $GITHUB_ENV
             fi
-
+  
             echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
             echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
             echo "Calculated new tag: $new_tag"
@@ -107,33 +119,14 @@ jobs:
             echo "Invalid tag format: $version"
             exit 1
           fi
-      - name: Debug current working directory
-        run: |
-          echo "Current directory:"
-          pwd
-          echo "Files under current directory:"
-          ls -al
-          echo "Files under outputs/:"
-          ls -al outputs || echo "outputs/ not found"
-      # 创建新的 prerelease
-      - name: Create pre-release (manual trigger only)
-        if: github.event_name == 'workflow_dispatch'
+  
+      # 创建 Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.NEW_TAG }}
-          prerelease: true
+          prerelease: ${{ env.PRERELEASE == 'true' }}
           generate_release_notes: true
-          files: |
-            outputs/*.apk
-            outputs/*.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
-          
-      - name: Upload release artifacts (published tag)
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
           files: |
             outputs/*.apk
             outputs/*.zip
