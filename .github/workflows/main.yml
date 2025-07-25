@@ -7,73 +7,73 @@ on:
   workflow_dispatch:
 
 jobs:
-  Build_Android:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-          flutter-version-file: pubspec.yaml
-          architecture: x64
-      - name: Decode and install certificate
-        env:
-          STORE_FILE: ${{ secrets.ANDROID_KEYSTORE }}
-          PROPERTY_FILE: ${{ secrets.ANDROID_KEY_PROPERTIES }}
-        run: |
-            echo "$STORE_FILE" | base64 --decode > android/keystore.jks
-            echo "$PROPERTY_FILE" > android/key.properties
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'oracle'
-          java-version: '17'
-      - name: Check rust-toolchain.toml
-        run: rustup show
-      - run: flutter pub get
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: apks
-          path: build/app/outputs/apk/release/*-arm64-v8a.apk
-  Build_Windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: install dependencies
-        run: | 
-          choco install yq -y
-          pip install httpx
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
-          flutter-version-file: pubspec.yaml
-          architecture: x64
-      - name: build
-        run: |
-          flutter pub get
-          python windows/build.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows_build
-          path: build/windows/Venera-*
+  # Build_Android:
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: "stable"
+  #         flutter-version-file: pubspec.yaml
+  #         architecture: x64
+  #     - name: Decode and install certificate
+  #       env:
+  #         STORE_FILE: ${{ secrets.ANDROID_KEYSTORE }}
+  #         PROPERTY_FILE: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+  #       run: |
+  #           echo "$STORE_FILE" | base64 --decode > android/keystore.jks
+  #           echo "$PROPERTY_FILE" > android/key.properties
+  #     - uses: actions/setup-java@v4
+  #       with:
+  #         distribution: 'oracle'
+  #         java-version: '17'
+  #     - name: Check rust-toolchain.toml
+  #       run: rustup show
+  #     - run: flutter pub get
+  #     - run: flutter build apk --release
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: apks
+  #         path: build/app/outputs/apk/release/*-arm64-v8a.apk
+  # Build_Windows:
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: install dependencies
+  #       run: | 
+  #         choco install yq -y
+  #         pip install httpx
+  #     - uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: "stable"
+  #         flutter-version-file: pubspec.yaml
+  #         architecture: x64
+  #     - name: build
+  #       run: |
+  #         flutter pub get
+  #         python windows/build.py
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: windows_build
+  #         path: build/windows/Venera-*
   Release:
     runs-on: ubuntu-22.04
-    needs: [Build_Android, Build_Windows]
+    # needs: [Build_Android, Build_Windows]
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: apks
-          path: outputs
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: apks
+      #     path: outputs
   
-      - uses: actions/download-artifact@v4
-        with:
-          name: windows_build
-          path: outputs
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: windows_build
+      #     path: outputs
       # 获取最近的 tag
       - name: Get latest tag
         id: get_tag
         run: |
-          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          latest_tag=${{ github.ref_name }}
           echo "LATEST_TAG=$latest_tag" >> $GITHUB_ENV
           echo "Latest tag: $latest_tag"
   
