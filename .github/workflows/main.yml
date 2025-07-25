@@ -69,7 +69,6 @@ jobs:
         with:
           name: windows_build
           path: outputs
-  
       # 获取最近的 tag
       - name: Get latest tag
         id: get_tag
