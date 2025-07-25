@@ -2,8 +2,8 @@ name: Build ALL
 run-name: Build ALL
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -88,7 +88,7 @@ jobs:
             patch=${BASH_REMATCH[3]}
             pre=${BASH_REMATCH[5]}
   
-            if [[ "${{ github.event_name }}" == "push" ]]; then
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
               # push: pre-release
               if [[ -z "$pre" ]]; then
                 patch=$((patch + 1))
@@ -98,7 +98,7 @@ jobs:
                 new_tag="v${major}.${minor}.${patch}.${pre}-pre"
               fi
               echo "PRERELEASE=true" >> $GITHUB_ENV
-            elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            elif [[ "${{ github.event_name }}" == "push" ]]; then
               # workflow_dispatch: 正式 release
               if [[ -n "$pre" ]]; then
                 # 如果当前是 pre-release，则去掉 pre 部分
